@@ -147,23 +147,21 @@ classdef Robot < handle
 
             dphi = phi;
             for i = 2:length(phi)
-               dphi = phi(i)-phi(i-1); 
+               dphi(i) = phi(i)-phi(i-1); 
             end
             
             for ii = 1 : length(ll)
-                Tii = arckinematics(K(ii), dphi(ii), ll(ii));
+                Tii = self.arckinematics(K(ii), dphi(ii), ll(ii));
                 T = T * Tii;
             end
         end
 
 
-        function T = arckinematics(K, dphi, ll)
+        function T = arckinematics(self, K, dphi, ll)
             w_rot = [0, -1, 0;
                      1, 0, 0;
                      0, 0, 0];
-            v_rot = [0, 0, 0;
-                     0, 0, 0;
-                     0, 0, 0];
+            v_rot = [0, 0, 0]';
             exp_rot_1 = eye(3)+sin(dphi)*w_rot + (1-cos(dphi))*w_rot^2;
             exp_rot_2 = (eye(3)*dphi + (1-cos(dphi))*w_rot + (dphi-sin(dphi))*w_rot^2)*v_rot;
             exp_rot = [exp_rot_1, exp_rot_2;
@@ -172,9 +170,7 @@ classdef Robot < handle
             w_tran = [0, 0, 0;
                      0, 0, -K;
                      0, K, 0];
-            v_tran = [0, -1, 0;
-                     1, 0, 0;
-                     0, 0, 0];
+            v_tran = [0, 0, 1]';
             exp_tran_1 = eye(3)+sin(ll)*w_tran + (1-cos(ll))*w_tran^2;
             exp_tran_2 = (eye(3)*ll + (1-cos(ll))*w_tran + (ll-sin(ll))*w_tran^2)*v_tran;
             exp_tran = [exp_tran_1, exp_tran_2;
