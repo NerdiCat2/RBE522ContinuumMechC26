@@ -64,6 +64,7 @@ classdef Robot < handle
             transition_points = [rho, rho + d];
             T_sorted = sort(transition_points);
             s = diff(T_sorted);
+            % s=s*10^3
         end
 
         % Function to get theta values

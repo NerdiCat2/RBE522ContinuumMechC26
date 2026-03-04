@@ -26,17 +26,17 @@ for i = 1:size(q_var,1)
 end
 
 %% Create a configuration c and plot the robot pose
-kappa1 = robot.kappa(1) % curvature of link 1 [m^-1]
+kappa1 = robot.kappa(1)*10^-3 % curvature of link 1 [m^-1]
 phi1   = robot.phi(1)     % base rotation of link 1 [rad]
-l1     = robot.lls(1);     % length of link 1 [m]
+l1     = robot.lls(1)*10^3;     % length of link 1 [m]
 
-kappa2 = robot.kappa(2) % curvature of link 2 [m^-1]
+kappa2 = robot.kappa(2)*10^-3 % curvature of link 2 [m^-1]
 phi2   = robot.phi(2)     % base rotation of link 2 [rad]
-l2     = robot.lls(2);     % length of link 2 [m]
+l2     = robot.lls(2)*10^3;     % length of link 2 [m]
 
-kappa3 = robot.kappa(3) % curvature of link 3 [m^-1]
+kappa3 = robot.kappa(3)*10^-3 % curvature of link 3 [m^-1]
 phi3   = robot.phi(3)     % base rotation of link 3 [rad]
-l3     = robot.lls(3);     % length of link 3 [m]
+l3     = robot.lls(3)*10^3;     % length of link 3 [m]
 
 % Robot Configuration
 c = [kappa1 phi1 l1 kappa2 phi2 l2 kappa3 phi3 l3]';
