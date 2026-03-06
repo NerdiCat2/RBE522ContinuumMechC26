@@ -376,30 +376,57 @@ classdef Robot < handle
         end
         
         function q_inv = calculate_ik(self, T_target, q_guess)
-            % Define the cost function
-            % T_target is the 4x4 homogenous transform you want to reach
-            cost_func = @(q) compute_error(self, q, T_target);
+            % 1. Define internal scaling factors
+            % We want the solver to operate in a normalized space where ~1.0 = max expected range
+            scale_rho = 100;   % 100 mm will look like 1.0 to the solver
+            scale_theta = 180; % 180 degrees will look like 1.0 to the solver
+            
+            % 2. Create the scaling vector dynamically based on num_tubes
+            % If num_tubes = 3, q_scale = [100 100 100 180 180 180]
+            n = self.num_tubes;
+            q_scale = [repmat(scale_rho, 1, n), repmat(scale_theta, 1, n)];
+            
+            % 3. Scale the external guess down into the solver's internal workspace
+            q_guess_scaled = q_guess ./ q_scale;
+            
+            % 4. Define the cost function, passing the scale vector so it can unscale inside
+            cost_func = @(q_scaled) compute_error_scaled(self, q_scaled, q_scale, T_target);
         
-            % Set up solver options (e.g., Levenberg-Marquardt)
-            options = optimoptions('lsqnonlin', 'Display', 'iter', 'Algorithm', 'levenberg-marquardt');
-        
-            % Solve for q
-            % You can also add upper/lower bounds here to prevent impossible tube insertions
-            q_inv = lsqnonlin(cost_func, q_guess, [], [], options); 
+            % 5. Set up solver options
+            % Tolerances are now evaluated against the SCALED variables and SCALED error.
+            options = optimoptions('lsqnonlin', 'Display', 'iter', ...
+                'Algorithm', 'levenberg-marquardt', ...
+                'StepTolerance', 1e-6, ...       % 1e-6 * 100mm = 0.0001mm minimum movement
+                'FunctionTolerance', 1e-6, ...   % Halts if squared error (in mm^2) changes by < 1e-6
+                'OptimalityTolerance', 1e-5, ... % Halts if the gradient is too flat
+                'MaxFunctionEvaluations', 2000, ...
+                'MaxIterations', 500);
+            
+            % 6. Run the solver in the scaled workspace
+            % (You can also apply scaled upper/lower bounds here)
+            q_inv_scaled = lsqnonlin(cost_func, q_guess_scaled, [], [], options); 
+            
+            % 7. Unscale the final result back to your standard units [mm, degrees]
+            q_inv = q_inv_scaled .* q_scale;
         end
         
-        function error = compute_error(self, q, T_target)
-            % Get the current transform using your existing FK function
-            T_current = self.fkin(q);
+        function error = compute_error_scaled(self, q_scaled, q_scale, T_target)
+            % 1. Unscale q back to physical units [mm, degrees] for your fkin function
+            q_real = q_scaled .* q_scale;
+            
+            % 2. Get the current transform (T_current is in meters)
+            T_current = self.fkin(q_real);
         
-            % Extract position error (x, y, z)
-            pos_error = T_target(1:3, 4) - T_current(1:3, 4);
+            % 3. Extract position error in meters
+            pos_error_m = T_target(1:3, 4) - T_current(1:3, 4);
         
-            % (Optional) Extract orientation error using axis-angle or rotation matrices
-            % ... 
-        
-            % Return the error vector (lsqnonlin minimizes the sum of squares of this vector)
-            error = pos_error; 
+            % 4. SCALE THE ERROR FOR THE SOLVER (Meters -> Millimeters)
+            % This is crucial. If error is 0.001m, lsqnonlin squares it to 1e-6.
+            % By scaling it to 1mm, it squares to 1. This prevents premature termination.
+            error = pos_error_m * 1000; 
+            
+            % (Optional) If you add orientation error later, scale the angle error 
+            % so that 1 degree of error is weighted similarly to 1 mm of position error.
         end
     end
 end

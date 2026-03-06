@@ -4,7 +4,7 @@ classdef Drive < handle
     properties
         % The COM Port here is the port that your computer assigns to the
         % Octopus board ("USB serial device")
-        COMPort = "COM6";
+        COMPort = "COM11";
         ser;
 
         % Initialize the home and current positions as Pose objects

@@ -13,13 +13,16 @@ tube3 = Tube(1.726*10^-3, 1.98*10^-3, 1/29, 250*10^-3, 50*10^-3, 1935*10^6);
 
 % TODO You will need to uncomment one of the below lines, depending if you
 % are testing a 2-tube or 3-tube case
-tubes = [tube1, tube2];
-% tubes = [tube1, tube2, tube3];
+%tubes = [tube1, tube2];
+tubes = [tube1, tube2, tube3];
 
 robot = Robot(tubes);
+%% 
+
+
 q_var = [%0, 0, 0, 0, 0, 0;
          %20, 50, 70, 45, -45, 45]; 
-         20, 50, 70, 45, 10, 10];
+         0, 0, 0, 0, 0, 0];
 % q_var = [20,50,45,10]
 T = {};
 for i = 1:size(q_var,1)
@@ -29,11 +32,17 @@ for i = 1:size(q_var,1)
     disp(T{i});
 end
 first_p=set_T(1:3,4)
-guess=10.*ones(size(q_var))
+guess=1.*ones(size(q_var))
 newQ=robot.calculate_ik(set_T,guess)
 
 newT=robot.fkin(newQ)
 second_p=newT(1:3,4)
+%% 
+guess=1.*ones(1,6)
+set_T=eye(4)
+set_T(1:3,4)=[80;80;0]
+Q=robot.calculate_ik(set_T,guess)
+robot.fkin(Q)
 
 %% Create a configuration c and plot the robot pose
 % kappa1 = robot.kappa(1)*10^-3 % curvature of link 1 [m^-1]
