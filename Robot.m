@@ -31,9 +31,12 @@ classdef Robot < handle
             theta = get_theta(self, q_var);
 
             % Next, we use rho to get the link lengths
+            self.lls=[];
             self.lls = get_links(self, rho);
 
             % Now we calculate the phi and kappa values
+            self.phi=[];
+            self.kappa=[];
             [self.phi,self.kappa] = calculate_phi_and_kappa(self, theta);
 
             % Finally we calculate the base to end effector transform
@@ -370,6 +373,33 @@ classdef Robot < handle
                   J(:,3*(i-1)+j) = AdT*J(:,3*(i-1)+j);
                end
             end
+        end
+        
+        function q_inv = calculate_ik(self, T_target, q_guess)
+            % Define the cost function
+            % T_target is the 4x4 homogenous transform you want to reach
+            cost_func = @(q) compute_error(self, q, T_target);
+        
+            % Set up solver options (e.g., Levenberg-Marquardt)
+            options = optimoptions('lsqnonlin', 'Display', 'iter', 'Algorithm', 'levenberg-marquardt');
+        
+            % Solve for q
+            % You can also add upper/lower bounds here to prevent impossible tube insertions
+            q_inv = lsqnonlin(cost_func, q_guess, [], [], options); 
+        end
+        
+        function error = compute_error(self, q, T_target)
+            % Get the current transform using your existing FK function
+            T_current = self.fkin(q);
+        
+            % Extract position error (x, y, z)
+            pos_error = T_target(1:3, 4) - T_current(1:3, 4);
+        
+            % (Optional) Extract orientation error using axis-angle or rotation matrices
+            % ... 
+        
+            % Return the error vector (lsqnonlin minimizes the sum of squares of this vector)
+            error = pos_error; 
         end
     end
 end
