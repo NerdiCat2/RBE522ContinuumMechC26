@@ -35,13 +35,13 @@ for i = 1:size(q_var,1)
 end
 
 %% Out of plane bending experiment
-theta = deg2rad([0, 0;
-         60, 0;
-         60, 60
-         60, -30]); 
+theta = [0, 0, 0, 0;
+         0, 0, 60, 0;
+         0, 0, 60, 60
+         0, 0, 60, -30]; 
 
-for i = 1:size(theta,1)
-    disp(rad2deg(theta(i,:)));
-    [phi, ~] = robot.calculate_phi_and_kappa(theta(i,:));
-    disp(rad2deg(phi(end-1)));
+for i = 1:size(q_var,1)
+    disp(q_var(i,:));
+    phi = robot.fkin(q_var(i,:));
+    disp(phi(end));
 end
