@@ -49,10 +49,10 @@ zres=0.005;
 for x=[-xylim:xyres:xylim]
     for y=[-xylim:xyres:xylim]
         for z=[0:zres:zlim]
-            guess=[-10, -10, -45, -45];;
+            guess=[-10, 10, -45, -45];;
             Q=robot.calculate_ik([1 0 0 x; 0 1 0 y; 0 0 1 z],guess);
             out=robot.fkin(Q);
-            if norm([x;y;z]-out(1:3,4))<0.004 && Q(1)<100 && Q(2)<100
+            if norm([x;y;z]-out(1:3,4))<0.001 && Q(1)<100 && Q(2)<100
                 fprintf('pos:(%g,%g,%g)\n', x, y, z);
                 Q
                 count=count+1;
@@ -64,6 +64,15 @@ count
 total=size([-xylim:xyres:xylim],2)*size([-xylim:xyres:xylim],2)*size([0:zres:zlim],2);
 disp("/"+total)
 
+%%
+p=[0;-15;45].*10^-3
+x=p(1);
+y=p(2);
+z=p(3);
+guess=[-10, 10, -45, -45];
+Q=robot.calculate_ik([1 0 0 x; 0 1 0 y; 0 0 1 z],guess);
+fprintf('pos:(%.0f,%.0f,0,%.0f,%.0f,0)\n', Q(1),Q(2),Q(3),Q(4));
+out=robot.fkin(Q);
 %% Create a configuration c and plot the robot pose
 % kappa1 = robot.kappa(1)*10^-3 % curvature of link 1 [m^-1]
 % phi1   = robot.phi(1)     % base rotation of link 1 [rad]

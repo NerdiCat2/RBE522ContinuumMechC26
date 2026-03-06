@@ -41,6 +41,7 @@ classdef Robot < handle
 
             % Finally we calculate the base to end effector transform
             T = calculate_transform(self, self.lls, self.phi, self.kappa);
+            T(3,4)=T(3,4)+q_var(1)*10^-3;
         end
 
         % Get rho values from joint positions
