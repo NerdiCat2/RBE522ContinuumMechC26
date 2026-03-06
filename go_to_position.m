@@ -6,15 +6,16 @@ clear; clc;
 
 %% INPUT
 % Initial joint values (for 2 tube case)
-% q_initial = [0, 0, 0, 0; 
-%              20, 50, 45, -45; 
-%              30, 35, -35, 20];
-
-% Initial joint values (for 3 tube case)
 q_initial = [20, 50, 45, -45];
 
 % Goal position
 goal_pos = [0.0093, -0.0309, 0.0691]';
+
+% Reference q used in debugging; The q corresponding to the goal position
+q_ref = [20, 50, 45, -45];
+rho_ref = q_ref(1:length(q_ref)/2)/1000;
+theta_ref = deg2rad(q_ref(1+length(q_ref)/2:end));
+
 
 %% CALCULATIONS
 tube1 = Tube(3.046*10^-3, 3.3*10^-3, 1/17, 90*10^-3, 50*10^-3, 1935*10^6);
@@ -31,12 +32,14 @@ robot = Robot(tubes);
 rho = rho_m*1000
 theta = rad2deg(theta_rad)
 
+% Verification
+[phi_ref, k_ref] = robot.calculate_phi_and_kappa(theta_ref)
+[ll_ref] = robot.get_links(rho_ref)
+% T_curr_ref = robot.fkin(q_initial)
+T_result_check = robot.fkin(q_ref)
+T_result = robot.fkin([rho, theta])
 
 %% MOVE
-
 % Move robot for 2 tube case
 %drive_bot.travel_for(rho(1), rho(2), 0, theta(1), theta(2), 0)
-
-% Move robot for 3 tube case
-% drive_bot.travel_for(rho(1), rho(2), rho(3), theta(1), theta(2), theta(3))
 

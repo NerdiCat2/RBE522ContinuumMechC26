@@ -83,7 +83,7 @@ scatter3(trajectory(1,:), trajectory(2,:), trajectory(3,:),'filled');
 for i = 1:size(trajectory, 2)
     p_target = trajectory(:, i);
     
-    [T_curr, ~] = fwkinematics(c);
+    [T_curr, ~] = fwkinematics(c)
     p_curr = T_curr(1:3, 4);
         
     err = p_target - p_curr;
@@ -105,7 +105,7 @@ for i = 1:size(trajectory, 2)
     c = c + delta_c;
     
     % Animation
-    [T, links] = fwkinematics(c);
+    [T, links] = fwkinematics(c)
     
     for jj = 1:nLinks
         [X, Y, Z] = gencyl(links{jj}, OD(jj) / 2 * ones(1,size(links{jj}, 2)));

@@ -151,32 +151,32 @@ classdef Robot < handle
             end
             
             for ii = 1 : length(ll)
-                Tii = self.arckinematics(K(ii), dphi(ii), ll(ii));
+                Tii = arckinematics([K(ii), dphi(ii), ll(ii)]);
                 T = T * Tii;
             end
         end
 
 
-        function T = arckinematics(self, K, dphi, ll)
-            w_rot = [0, -1, 0;
-                     1, 0, 0;
-                     0, 0, 0];
-            v_rot = [0, 0, 0]';
-            exp_rot_1 = eye(3)+sin(dphi)*w_rot + (1-cos(dphi))*w_rot^2;
-            exp_rot_2 = (eye(3)*dphi + (1-cos(dphi))*w_rot + (dphi-sin(dphi))*w_rot^2)*v_rot;
-            exp_rot = [exp_rot_1, exp_rot_2;
-                       0, 0, 0, 1];
-
-            w_tran = [0, 0, 0;
-                     0, 0, -K;
-                     0, K, 0];
-            v_tran = [0, 0, 1]';
-            exp_tran_1 = eye(3)+sin(ll)*w_tran + (1-cos(ll))*w_tran^2;
-            exp_tran_2 = (eye(3)*ll + (1-cos(ll))*w_tran + (ll-sin(ll))*w_tran^2)*v_tran;
-            exp_tran = [exp_tran_1, exp_tran_2;
-                       0, 0, 0, 1];
-            T = exp_rot*exp_tran;
-        end
+        % function T = arckinematics(self, K, dphi, ll)
+        %     w_rot = [0, -1, 0;
+        %              1, 0, 0;
+        %              0, 0, 0];
+        %     v_rot = [0, 0, 0]';
+        %     exp_rot_1 = eye(3)+sin(dphi)*w_rot + (1-cos(dphi))*w_rot^2;
+        %     exp_rot_2 = (eye(3)*dphi + (1-cos(dphi))*w_rot + (dphi-sin(dphi))*w_rot^2)*v_rot;
+        %     exp_rot = [exp_rot_1, exp_rot_2;
+        %                0, 0, 0, 1];
+        % 
+        %     w_tran = [0, 0, 0;
+        %              0, 0, -K;
+        %              0, K, 0];
+        %     v_tran = [0, 0, 1]';
+        %     exp_tran_1 = eye(3)+sin(ll)*w_tran + (1-cos(ll))*w_tran^2;
+        %     exp_tran_2 = (eye(3)*ll + (1-cos(ll))*w_tran + (ll-sin(ll))*w_tran^2)*v_tran;
+        %     exp_tran = [exp_tran_1, exp_tran_2;
+        %                0, 0, 0, 1];
+        %     T = exp_rot*exp_tran;
+        % end
 
 
         % Inverse kinematics; calculates the control inputs for the
@@ -208,7 +208,7 @@ classdef Robot < handle
             p_curr = T_curr(1:3, 4);
 
             % Calculate (p-p*)
-            err = goal_pos - p_curr
+            err = goal_pos - p_curr;
 
             % Calculate J_p, the Jacobian mapping task space to arc parameters    
             J = jacob0(self, c);
@@ -228,7 +228,18 @@ classdef Robot < handle
             delta_c = J_pinv * err;
                 
             % Calculate goal arc parameters
-            c_goal = c + delta_c;
+            c_goal = c + delta_c
+
+            % Verify forward kinematics for debugging
+            k_goal = [];
+            phi_goal = [];
+            lls_goal = [];
+            for i = 1:length(c_goal)/3
+                k_goal(end+1) = c_goal(1+3*(i-1));
+                phi_goal(end+1) = c_goal(2+3*(i-1));
+                lls_goal(end+1) = c_goal(3+3*(i-1));
+            end
+            T_goal_check = calculate_transform(self, lls_goal, phi_goal, k_goal)
 
             % Solve robot-dependent inverse kinematics using an
             % optimization problem (Newton's Method with a central
@@ -236,106 +247,149 @@ classdef Robot < handle
             rho = rho_curr;
             theta = theta_curr;
             
-            max_iter = 100;
-            tol = 1e-8;
+            % for i = 1:max_iter               
+            %     % Robot dependent forward kinematics with guess
+            %     [phi_guess, k_guess] = calculate_phi_and_kappa(self, theta);
+            %     ll_guess = get_links(self, rho);
+            % 
+            %     c_guess = [];
+            %     for i = 1:length(ll_guess)
+            %         c_guess(end+1) = k_guess(i);
+            %         c_guess(end+1) = phi_guess(i);
+            %         c_guess(end+1) = ll_guess(i);
+            %     end
+            %     c_guess = c_guess';
+            % 
+            %     % Residual function pointer
+            %     % "f" is [rho, theta]
+            %     R = c_guess - c_goal;
+            % 
+            %     % Gradient
+            %     G = func_gradient(self,rho,theta);
+            % 
+            %     % Options
+            % 
+            %     % Optimization
+            %     dq = transpose(G\-R)
+            % 
+            %     % Update guess
+            %     rho = rho + dq(1:length(rho));
+            %     theta = theta + dq(length(rho)+1:end);
+            % 
+            %     % End condition (error converges)
+            %     if norm(dq) < tol
+            %         break
+            %     end
+            % end
             
-            for i = 1:max_iter               
-                % Robot dependent forward kinematics with guess
-                [phi_guess, k_guess] = calculate_phi_and_kappa(self, theta);
-                ll_guess = get_links(self, rho);
 
-                c_guess = [];
-                for i = 1:length(ll_guess)
-                    c_guess(end+1) = k_guess(i);
-                    c_guess(end+1) = phi_guess(i);
-                    c_guess(end+1) = ll_guess(i);
-                end
-                c_guess = c_guess'
-                
-                % Residual
-                R = c_guess - c_goal
-                
-                % Gradient
-                G = func_gradient(self,rho,theta)
-                
-                % Optimization
-                dq = transpose(G\-R)
-                
-                % Update guess
-                rho = rho + dq(1:length(rho));
-                theta = theta + dq(length(rho)+1:end);
-                
-                % End condition (error converges)
-                if norm(dq) < tol
-                    break
-                end
+            lower_bounds = zeros(1, 2*length(rho_curr));
+            upper_bounds = zeros(1, 2*length(rho_curr));
+            for i = 1:length(rho_curr)
+                lower_bounds(i+length(rho_curr)) = -pi;
+                upper_bounds(i) = 0.150;
+                upper_bounds(i+length(rho_curr)) = pi;
             end
+
+            options = optimoptions('fmincon', 'Display', 'off', ...
+                        'Algorithm', 'sqp', ... 
+                        'StepTolerance', 1e-6, ...       
+                        'OptimalityTolerance', 1e-6, ... 
+                        'MaxFunctionEvaluations', 2000, ...
+                        'MaxIterations', 500);
+            
+            q_guess = [rho, theta];
+           
+            cost_func = @(f) func_residual(self, f, c_goal);
+
+            result = fmincon(cost_func, q_guess, [], [], [], [], lower_bounds, upper_bounds, [], options); 
+            
+            rho = rho + result(1:length(rho));
+            theta = theta + result(length(rho)+1:end);
+        end
+
+        % Cost function for optimization
+        function R = func_residual(self, q, c_goal)
+            rho = q(1:length(q)/2);
+            theta = q(length(q)/2:end);
+            [phi_guess, k_guess] = calculate_phi_and_kappa(self, theta);
+            ll_guess = get_links(self, rho);
+
+            c_guess = [];
+            for i = 1:length(ll_guess)
+                c_guess(end+1) = k_guess(i);
+                c_guess(end+1) = phi_guess(i);
+                c_guess(end+1) = ll_guess(i);
+            end
+            c_guess = c_guess';
+
+            R = norm(c_guess - c_goal);
         end
         
         % Gradient function for robot-dependent inverse kinematics
         % optimization problem
-        function J = func_gradient(self,rho,theta)
-
-            h = 1e-6;
-            J = [];
-            
-            [phi, k] = calculate_phi_and_kappa(self, theta);
-            ll = get_links(self, rho);
-
-            for i = 1:length(rho)
-                rho_ph = rho;
-                rho_mh = rho;
-                rho_ph(i) = rho_ph(i) + h;
-                rho_mh(i) = rho_mh(i) - h;
-                ll_ph = get_links(self, rho_ph);
-                ll_mh = get_links(self, rho_mh);
-                
-                c_ph = [];
-                for i = 1:length(ll_ph)
-                    c_ph(end+1) = k(i);
-                    c_ph(end+1) = phi(i);
-                    c_ph(end+1) = ll_ph(i);
-                end
-                c_ph=c_ph';
-
-                c_mh = [];
-                for i = 1:length(ll_mh)
-                    c_mh(end+1) = k(i);
-                    c_mh(end+1) = phi(i);
-                    c_mh(end+1) = ll_mh(i);
-                end
-                c_mh=c_mh';
-
-                J(:, end+1) = (c_ph-c_mh)/(2*h);
-            end
-
-            for i = 1:length(theta)
-                theta_ph = theta;
-                theta_mh = theta;
-                theta_ph(i) = theta_ph(i) + h;
-                theta_mh(i) = theta_mh(i) - h;
-                [phi_ph, k_ph] = calculate_phi_and_kappa(self, theta_ph);
-                [phi_mh, k_mh] = calculate_phi_and_kappa(self, theta_mh);
-
-                c_ph = [];
-                for i = 1:length(ll_ph)
-                    c_ph(end+1) = k_ph(i);
-                    c_ph(end+1) = phi_ph(i);
-                    c_ph(end+1) = ll(i);
-                end
-                c_ph=c_ph';
-
-                c_mh = [];
-                for i = 1:length(ll_mh)
-                    c_mh(end+1) = k_mh(i);
-                    c_mh(end+1) = phi_mh(i);
-                    c_mh(end+1) = ll(i);
-                end
-                c_mh=c_mh';
-
-                J(:, end+1) = (c_ph-c_mh)/(2*h);
-            end
-        end
+        % function J = func_gradient(self,rho,theta)
+        % 
+        %     h = 1e-6;
+        %     J = [];
+        % 
+        %     [phi, k] = calculate_phi_and_kappa(self, theta);
+        %     ll = get_links(self, rho);
+        % 
+        %     for i = 1:length(rho)
+        %         rho_ph = rho;
+        %         rho_mh = rho;
+        %         rho_ph(i) = rho_ph(i) + h;
+        %         rho_mh(i) = rho_mh(i) - h;
+        %         ll_ph = get_links(self, rho_ph);
+        %         ll_mh = get_links(self, rho_mh);
+        % 
+        %         c_ph = [];
+        %         for i = 1:length(ll_ph)
+        %             c_ph(end+1) = k(i);
+        %             c_ph(end+1) = phi(i);
+        %             c_ph(end+1) = ll_ph(i);
+        %         end
+        %         c_ph=c_ph';
+        % 
+        %         c_mh = [];
+        %         for i = 1:length(ll_mh)
+        %             c_mh(end+1) = k(i);
+        %             c_mh(end+1) = phi(i);
+        %             c_mh(end+1) = ll_mh(i);
+        %         end
+        %         c_mh=c_mh';
+        % 
+        %         J(:, end+1) = (c_ph-c_mh)/(2*h);
+        %     end
+        % 
+        %     for i = 1:length(theta)
+        %         theta_ph = theta;
+        %         theta_mh = theta;
+        %         theta_ph(i) = theta_ph(i) + h;
+        %         theta_mh(i) = theta_mh(i) - h;
+        %         [phi_ph, k_ph] = calculate_phi_and_kappa(self, theta_ph);
+        %         [phi_mh, k_mh] = calculate_phi_and_kappa(self, theta_mh);
+        % 
+        %         c_ph = [];
+        %         for i = 1:length(ll_ph)
+        %             c_ph(end+1) = k_ph(i);
+        %             c_ph(end+1) = phi_ph(i);
+        %             c_ph(end+1) = ll(i);
+        %         end
+        %         c_ph=c_ph';
+        % 
+        %         c_mh = [];
+        %         for i = 1:length(ll_mh)
+        %             c_mh(end+1) = k_mh(i);
+        %             c_mh(end+1) = phi_mh(i);
+        %             c_mh(end+1) = ll(i);
+        %         end
+        %         c_mh=c_mh';
+        % 
+        %         J(:, end+1) = (c_ph-c_mh)/(2*h);
+        %     end
+        % end
 
         
         % Robot independent continuum Jacobian solution recycled from HW 4
