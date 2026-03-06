@@ -254,10 +254,10 @@ classdef Robot < handle
                 R = c_guess - c_goal;
                 
                 % Gradient
-                J = func_gradient(rho,theta);
+                G = func_gradient(rho,theta);
                 
                 % Optimization
-                dq = J\-R;
+                dq = G\-R;
                 
                 % Update guess
                 rho = rho + dq(1:length(rho));
