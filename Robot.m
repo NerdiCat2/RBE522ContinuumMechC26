@@ -199,6 +199,7 @@ classdef Robot < handle
                 c(end+1) = self.phi(i);
                 c(end+1) = self.lls(i);
             end
+            c = c';
 
             % Finally we calculate the base to end effector transform
             T_curr = calculate_transform(self, self.lls, self.phi, self.kappa);
@@ -249,6 +250,7 @@ classdef Robot < handle
                     c_guess(end+1) = phi_guess(i);
                     c_guess(end+1) = ll_guess(i);
                 end
+                c_guess = c_guess';
                 
                 % Residual
                 R = c_guess - c_goal;
@@ -261,7 +263,7 @@ classdef Robot < handle
                 
                 % Update guess
                 rho = rho + dq(1:length(rho));
-                theta = theta + dq(length(rho)+1,end);
+                theta = theta + dq(length(rho)+1:end);
                 
                 % End condition (error converges)
                 if norm(dq) < tol
@@ -294,6 +296,7 @@ classdef Robot < handle
                     c_ph(end+1) = phi(i);
                     c_ph(end+1) = ll_ph(i);
                 end
+                c_ph = c_ph';
 
                 c_mh = [];
                 for i = 1:length(ll_mh)
@@ -301,8 +304,9 @@ classdef Robot < handle
                     c_mh(end+1) = phi(i);
                     c_mh(end+1) = ll_mh(i);
                 end
+                c_mh = c_mh';
 
-                J(:, i) = (c_ph-c_mh)/(2*h);
+                J(:, end+1) = (c_ph-c_mh)/(2*h);
             end
 
             for i = 1:length(theta)
@@ -319,6 +323,7 @@ classdef Robot < handle
                     c_ph(end+1) = phi_ph(i);
                     c_ph(end+1) = ll(i);
                 end
+                c_ph = c_ph';
 
                 c_mh = [];
                 for i = 1:length(ll_mh)
@@ -326,8 +331,9 @@ classdef Robot < handle
                     c_mh(end+1) = phi_mh(i);
                     c_mh(end+1) = ll(i);
                 end
+                c_mh = c_mh';
 
-                J(:, i+length(rho)) = (c_ph-c_mh)/(2*h);
+                J(:, end+1) = (c_ph-c_mh)/(2*h);
             end
         end
 

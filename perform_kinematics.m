@@ -16,7 +16,7 @@ robot = Robot(tubes);
 % q values for testing with two tubes
 q_var = [0, 0, 0, 0; 
          20, 50, 45, -45; 
-         30, 35, -35, 20];
+         0, 35, -35, 20];
 
 
 % q values for testing with three tubes

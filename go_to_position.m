@@ -5,18 +5,15 @@ clear; clc;
 % drive_bot = Drive(startPose);
 
 %% INPUT
+% Initial poses are formatted as q=[rho (mm), theta (degrees)]
 % Initial joint values (for 2 tube case)
-% q_initial = [0, 0, 0, 0; 
-%              20, 50, 45, -45; 
-%              30, 35, -35, 20];
+q_initial = [0, 0, 0, 0];
 
 % Initial joint values (for 3 tube case)
-q_initial = [0, 0, 0, 0, 0, 0;
-             20, 50, 70, 45, -45, 45; 
-             30, 35, 50, -35, 20, -10];
+% q_initial = [0, 0, 0, 0, 0, 0];
 
 % Goal position
-goal_pos = [0, 0, 0]';
+goal_pos = [-0.0064, -0.0223, 0.0480]';
 
 %% CALCULATIONS
 tube1 = Tube(3.046*10^-3, 3.3*10^-3, 1/17, 90*10^-3, 50*10^-3, 1935*10^6);
@@ -29,7 +26,9 @@ tubes = [tube1, tube2];
 
 robot = Robot(tubes);
 
-[rho, theta] = robot.invkinematics(q_initial, goal_pos)
+[rho_m, theta_rad] = robot.invkinematics(q_initial, goal_pos);
+rho = rho_m*1000;
+theta = rad2deg(theta_rad);
 
 %% MOVE
 
@@ -38,4 +37,3 @@ robot = Robot(tubes);
 
 % Move robot for 3 tube case
 % drive_bot.travel_for(rho(1), rho(2), rho(3), theta(1), theta(2), theta(3))
-
