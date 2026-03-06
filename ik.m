@@ -3,20 +3,20 @@
 clear
 close all
 clc
-%% Create a robot with 3 links
+% Create a robot with 3 links
 
 OD = [1.8 1.6 1.4]; % link diameters [mm]
 
-tube1 = Tube(3.046*10^-3, 3.3*10^-3, 1/17, 90*10^-3, 50*10^-3, 1935*10^6);
-tube2 = Tube(2.386*10^-3, 2.64*10^-3, 1/22, 170*10^-3, 50*10^-3, 1935*10^6);
+tube1 = Tube(3.046*10^-3, 3.3*10^-3, 1/8, 90*10^-3, 50*10^-3, 1935*10^6);
+tube2 = Tube(2.386*10^-3, 2.64*10^-3, 1/11, 170*10^-3, 50*10^-3, 1935*10^6);
 tube3 = Tube(1.726*10^-3, 1.98*10^-3, 1/29, 250*10^-3, 50*10^-3, 1935*10^6);
 
 % TODO You will need to uncomment one of the below lines, depending if you
 % are testing a 2-tube or 3-tube case
 %tubes = [tube1, tube2];
 tubes = [tube1, tube2, tube3];
-
-robot = Robot(tubes);
+n=2
+robot = Robot(tubes(1:n));
 %% 
 
 
@@ -37,12 +37,32 @@ newQ=robot.calculate_ik(set_T,guess)
 
 newT=robot.fkin(newQ)
 second_p=newT(1:3,4)
+%%
+home=robot.fkin([53.6448   53.6448  -42.5874  -65.2461])
+
 %% 
-guess=1.*ones(1,6)
-set_T=eye(4)
-set_T(1:3,4)=[80;80;0]
-Q=robot.calculate_ik(set_T,guess)
-robot.fkin(Q)
+count=0;
+xylim=0.015;
+xyres=0.003;
+zlim=0.045;
+zres=0.005;
+for x=[-xylim:xyres:xylim]
+    for y=[-xylim:xyres:xylim]
+        for z=[0:zres:zlim]
+            guess=[-10, -10, -45, -45];;
+            Q=robot.calculate_ik([1 0 0 x; 0 1 0 y; 0 0 1 z],guess);
+            out=robot.fkin(Q);
+            if norm([x;y;z]-out(1:3,4))<0.004 && Q(1)<100 && Q(2)<100
+                fprintf('pos:(%g,%g,%g)\n', x, y, z);
+                Q
+                count=count+1;
+            end
+        end
+    end
+end
+count
+total=size([-xylim:xyres:xylim],2)*size([-xylim:xyres:xylim],2)*size([0:zres:zlim],2);
+disp("/"+total)
 
 %% Create a configuration c and plot the robot pose
 % kappa1 = robot.kappa(1)*10^-3 % curvature of link 1 [m^-1]

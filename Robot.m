@@ -376,57 +376,49 @@ classdef Robot < handle
         end
         
         function q_inv = calculate_ik(self, T_target, q_guess)
-            % 1. Define internal scaling factors
-            % We want the solver to operate in a normalized space where ~1.0 = max expected range
-            scale_rho = 100;   % 100 mm will look like 1.0 to the solver
-            scale_theta = 180; % 180 degrees will look like 1.0 to the solver
+            % 1. Scales
+            scale_rho = 100;   
+            scale_theta = 180; 
             
-            % 2. Create the scaling vector dynamically based on num_tubes
-            % If num_tubes = 3, q_scale = [100 100 100 180 180 180]
             n = self.num_tubes;
             q_scale = [repmat(scale_rho, 1, n), repmat(scale_theta, 1, n)];
             
-            % 3. Scale the external guess down into the solver's internal workspace
             q_guess_scaled = q_guess ./ q_scale;
             
-            % 4. Define the cost function, passing the scale vector so it can unscale inside
-            cost_func = @(q_scaled) compute_error_scaled(self, q_scaled, q_scale, T_target);
+            % 2. Bounds (Now they will be strictly obeyed!)
+            lb_real = [repmat(-100, 1, n), repmat(-360, 1, n)]; 
+            ub_real = [repmat(100, 1, n), repmat(360, 1, n)];
+            
+            lb_scaled = lb_real ./ q_scale;
+            ub_scaled = ub_real ./ q_scale;
         
-            % 5. Set up solver options
-            % Tolerances are now evaluated against the SCALED variables and SCALED error.
-            options = optimoptions('lsqnonlin', 'Display', 'iter', ...
-                'Algorithm', 'levenberg-marquardt', ...
-                'StepTolerance', 1e-6, ...       % 1e-6 * 100mm = 0.0001mm minimum movement
-                'FunctionTolerance', 1e-6, ...   % Halts if squared error (in mm^2) changes by < 1e-6
-                'OptimalityTolerance', 1e-5, ... % Halts if the gradient is too flat
+            % 3. Cost Function for fmincon
+            % fmincon minimizes a single scalar value. 
+            % We take the error vector, square it, and sum it up (Sum of Squared Errors).
+            cost_func = @(q_scaled) sum(compute_error_scaled(self, q_scaled, q_scale, T_target).^2);
+        
+            % 4. Set up fmincon options ('sqp' or 'interior-point' work great for IK)
+            options = optimoptions('fmincon', 'Display', 'off', ...
+                'Algorithm', 'sqp', ... 
+                'StepTolerance', 1e-6, ...       
+                'OptimalityTolerance', 1e-5, ... 
                 'MaxFunctionEvaluations', 2000, ...
                 'MaxIterations', 500);
             
-            % 6. Run the solver in the scaled workspace
-            % (You can also apply scaled upper/lower bounds here)
-            q_inv_scaled = lsqnonlin(cost_func, q_guess_scaled, [], [], options); 
+            % 5. Run fmincon
+            % Signature: fmincon(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon, options)
+            q_inv_scaled = fmincon(cost_func, q_guess_scaled, [], [], [], [], lb_scaled, ub_scaled, [], options); 
             
-            % 7. Unscale the final result back to your standard units [mm, degrees]
+            % 6. Unscale the final result
             q_inv = q_inv_scaled .* q_scale;
         end
         
+        % Keep your compute_error_scaled function exactly as it was!
         function error = compute_error_scaled(self, q_scaled, q_scale, T_target)
-            % 1. Unscale q back to physical units [mm, degrees] for your fkin function
             q_real = q_scaled .* q_scale;
-            
-            % 2. Get the current transform (T_current is in meters)
             T_current = self.fkin(q_real);
-        
-            % 3. Extract position error in meters
             pos_error_m = T_target(1:3, 4) - T_current(1:3, 4);
-        
-            % 4. SCALE THE ERROR FOR THE SOLVER (Meters -> Millimeters)
-            % This is crucial. If error is 0.001m, lsqnonlin squares it to 1e-6.
-            % By scaling it to 1mm, it squares to 1. This prevents premature termination.
-            error = pos_error_m * 1000; 
-            
-            % (Optional) If you add orientation error later, scale the angle error 
-            % so that 1 degree of error is weighted similarly to 1 mm of position error.
+            error = pos_error_m * 1000; % Convert to mm for solver gradient
         end
     end
 end
