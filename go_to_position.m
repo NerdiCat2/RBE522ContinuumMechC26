@@ -35,8 +35,7 @@ theta = rad2deg(theta_rad)
 % Verification
 [phi_ref, k_ref] = robot.calculate_phi_and_kappa(theta_ref)
 [ll_ref] = robot.get_links(rho_ref)
-% T_curr_ref = robot.fkin(q_initial)
-T_result_check = robot.fkin(q_ref)
+T_result_ref_check = robot.fkin(q_ref)
 T_result = robot.fkin([rho, theta])
 
 %% MOVE

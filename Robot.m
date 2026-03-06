@@ -239,7 +239,7 @@ classdef Robot < handle
                 phi_goal(end+1) = c_goal(2+3*(i-1));
                 lls_goal(end+1) = c_goal(3+3*(i-1));
             end
-            T_goal_check = calculate_transform(self, lls_goal, phi_goal, k_goal)
+            T_robot_independent_output = calculate_transform(self, lls_goal, phi_goal, k_goal)
 
             % Solve robot-dependent inverse kinematics using an
             % optimization problem (Newton's Method with a central
